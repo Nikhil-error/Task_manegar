@@ -31,6 +31,7 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
     headers: {
       'Authorization': AUTH_HEADER,
       'Content-Type': 'application/json',
+      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       ...options.headers,
     },
   });
