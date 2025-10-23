@@ -1,11 +1,10 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from 'npm:@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Basic Auth credentials
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'password123';
 
@@ -27,7 +26,6 @@ function validateBasicAuth(authHeader: string | null): boolean {
 }
 
 function sanitizeInput(input: string): string {
-  // Remove HTML tags and script tags to prevent XSS
   return input.replace(/<[^>]*>/g, '').trim();
 }
 
@@ -48,13 +46,11 @@ function createAuditLog(
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Validate Basic Auth
     const authHeader = req.headers.get('authorization');
     if (!validateBasicAuth(authHeader)) {
       return new Response(
@@ -73,7 +69,6 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     
-    // Remove 'api' from path parts if present
     const apiIndex = pathParts.indexOf('api');
     if (apiIndex !== -1) {
       pathParts.splice(apiIndex, 1);
@@ -81,7 +76,6 @@ Deno.serve(async (req) => {
 
     console.log('Request:', req.method, pathParts);
 
-    // GET /api/tasks - Fetch tasks with optional filtering and pagination
     if (req.method === 'GET' && pathParts[0] === 'tasks') {
       const search = url.searchParams.get('search') || '';
       const page = parseInt(url.searchParams.get('page') || '1');
@@ -121,13 +115,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // POST /api/tasks - Create a new task
     if (req.method === 'POST' && pathParts[0] === 'tasks') {
       const body = await req.json();
       const title = sanitizeInput(body.title || '');
       const description = sanitizeInput(body.description || '');
 
-      // Validate inputs
       if (!title || title.length === 0 || title.length > 100) {
         return new Response(
           JSON.stringify({ error: 'Title must be between 1 and 100 characters' }),
@@ -156,7 +148,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Create audit log
       await createAuditLog(supabase, 'Create Task', data.id, { title, description });
 
       return new Response(
@@ -165,12 +156,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // PUT /api/tasks/:id - Update a task
     if (req.method === 'PUT' && pathParts[0] === 'tasks' && pathParts[1]) {
       const taskId = parseInt(pathParts[1]);
       const body = await req.json();
       
-      // Get current task for comparison
       const { data: currentTask } = await supabase
         .from('tasks')
         .select('*')
@@ -237,7 +226,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Create audit log with only changed fields
       await createAuditLog(supabase, 'Update Task', taskId, changedFields);
 
       return new Response(
@@ -246,7 +234,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // DELETE /api/tasks/:id - Delete a task
     if (req.method === 'DELETE' && pathParts[0] === 'tasks' && pathParts[1]) {
       const taskId = parseInt(pathParts[1]);
 
@@ -263,7 +250,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Create audit log
       await createAuditLog(supabase, 'Delete Task', taskId, null);
 
       return new Response(
@@ -272,7 +258,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // GET /api/logs - Get audit logs with pagination
     if (req.method === 'GET' && pathParts[0] === 'logs') {
       const page = parseInt(url.searchParams.get('page') || '1');
       const limit = parseInt(url.searchParams.get('limit') || '5');
@@ -304,7 +289,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // If no route matched
     return new Response(
       JSON.stringify({ error: 'Not found' }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
